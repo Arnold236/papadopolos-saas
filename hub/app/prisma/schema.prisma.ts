@@ -172,4 +172,96 @@ model Review {
   appointment Appointment? @relation(fields: [appointmentId], references: [id])
 }
 
+// Blog Models
+model BlogCategory {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  color       String?   @default("#00BFFF")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  posts       BlogPost[]
+}
+
+model BlogPost {
+  id             String        @id @default(cuid())
+  title          String
+  slug           String        @unique
+  excerpt        String
+  content        String
+  featuredImage  String?
+  authorId       String?
+  categoryId     String
+  readTime       Int           @default(5)
+  views          Int           @default(0)
+  published      Boolean       @default(false)
+  featured       Boolean       @default(false)
+  metaTitle      String?
+  metaDescription String?
+  publishedAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  author         Doctor?       @relation(fields: [authorId], references: [id])
+  category       BlogCategory  @relation(fields: [categoryId], references: [id])
+  tags           BlogTag[]
+  comments       BlogComment[]
+
+  @@index([published, publishedAt])
+  @@index([categoryId])
+}
+
+model BlogTag {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+
+  posts     BlogPost[]
+}
+
+model BlogComment {
+  id        String    @id @default(cuid())
+  postId    String
+  authorId  String?
+  parentId  String?
+  content   String
+  approved  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  post      BlogPost  @relation(fields: [postId], references: [id])
+  author    User?     @relation(fields: [authorId], references: [id])
+  parent    BlogComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   BlogComment[] @relation("CommentReplies")
+}
+
+// Media Gallery Models
+model MediaGallery {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String    // Uploadthing URL
+  category    String?   // "facility", "team", "events", etc.
+  order       Int       @default(0)
+  published   Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model FacilityImage {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  imageUrl    String    // Uploadthing URL
+  features    String[]  // Array of features
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 // ... (rest of the models remain similar, add clerkId where needed)

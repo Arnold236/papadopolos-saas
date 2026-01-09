@@ -35,6 +35,22 @@ export function Header({ onBookingClick }: HeaderProps) {
     { href: "/contact", label: "Contact" },
   ];
 
+// const navLinks = [
+//   // ... existing links
+//   { href: "/blog", label: "Blog" },
+//   { href: "/media", label: "Media" },
+// ];
+
+// // Add create button for authorized users
+// {user?.role === "ADMIN" || user?.doctor && (
+//   <Link href="/blog/create">
+//     <Button variant="ghost" size="sm">
+//       <PenSquare className="w-4 h-4 mr-1" />
+//       Write
+//     </Button>
+//   </Link>
+// )}
+
   return (
     <header className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-100 dark:border-gray-800 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
