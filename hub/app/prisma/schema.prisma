@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  RESCHEDULED
+}
+
+enum NotificationType {
+  EMAIL
+  SMS
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String
+  phone           String?
+  password        String
+  role            UserRole  @default(PATIENT)
+  emailVerified   Boolean   @default(false)
+  phoneVerified   Boolean   @default(false)
+  avatar          String?
+  dateOfBirth     DateTime?
+  address         String?
+  emergencyContact String?
+  medicalHistory  String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  appointmentsAsPatient Appointment[] @relation("PatientAppointments")
+  appointmentsAsDoctor  Appointment[] @relation("DoctorAppointments")
+  notifications        Notification[]
+  notificationPreferences NotificationPreference?
+}
+
+model Doctor {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  specialty   String
+  qualifications String[]
+  experience  Int      // years
+  licenseNumber String
+  consultationFee Decimal
+  bio         String?
+  available   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+  appointments Appointment[]
+  availability DoctorAvailability[]
+  workingHours WorkingHours[]
+}
+
+model DoctorAvailability {
+  id          String   @id @default(cuid())
+  doctorId    String
+  date        DateTime
+  startTime   String
+  endTime     String
+  slots       Json     // Array of available time slots
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  doctor      Doctor   @relation(fields: [doctorId], references: [id])
+}
+
+model WorkingHours {
+  id        String   @id @default(cuid())
+  doctorId  String
+  dayOfWeek Int      // 0-6 (Sunday-Saturday)
+  startTime String
+  endTime   String
+  isWorking Boolean  @default(true)
+
+  // Relations
+  doctor    Doctor   @relation(fields: [doctorId], references: [id])
+}
+
+model Appointment {
+  id          String           @id @default(cuid())
+  patientId   String
+  doctorId    String
+  date        DateTime
+  startTime   String
+  endTime     String
+  status      AppointmentStatus @default(PENDING)
+  reason      String?
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  cancelledAt DateTime?
+  cancelledBy String?          // User ID who cancelled
+  cancellationReason String?
+
+  // Relations
+  patient     User             @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctor      User             @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  doctorInfo  Doctor           @relation(fields: [doctorId], references: [userId])
+  notifications Notification[]
+}
+
+model Notification {
+  id              String           @id @default(cuid())
+  userId          String
+  appointmentId   String?
+  type            NotificationType
+  title           String
+  content         String
+  sentAt          DateTime         @default(now())
+  read            Boolean          @default(false)
+  metadata        Json?            // Additional data like SMS status, email status
+
+  // Relations
+  user            User             @relation(fields: [userId], references: [id])
+  appointment     Appointment?     @relation(fields: [appointmentId], references: [id])
+}
+
+model NotificationPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  emailEnabled    Boolean  @default(true)
+  smsEnabled      Boolean  @default(true)
+  appointmentReminders Boolean @default(true)
+  appointmentConfirmations Boolean @default(true)
+  appointmentCancellations Boolean @default(true)
+  remindersBeforeHours Int @default(24) // Hours before appointment
+  dailyDigest    Boolean  @default(false)
+  marketingEmails Boolean @default(false)
+
+  // Relations
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  entity      String
+  entityId    String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model ChatHistory {
+  id        String   @id @default(cuid())
+  userId    String?
+  sessionId String
+  message   Json     // { role: "user"|"assistant", content: string, timestamp: Date }
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String?
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  metadata  Json?    // { userAgent, ip, etc. }
+
+  // Relations
+  user      User?    @relation(fields: [userId], references: [id])
+  messages  ChatHistory[]
+}
