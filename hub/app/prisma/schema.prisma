@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -24,22 +23,46 @@ enum AppointmentStatus {
 enum NotificationType {
   EMAIL
   SMS
+  PUSH
+}
+
+enum ConsultationType {
+  VIDEO
+  AUDIO
+  CHAT
+}
+
+enum ConsultationStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
 }
 
 model User {
   id              String    @id @default(cuid())
+  clerkId         String?   @unique  // Clerk user ID
   email           String    @unique
   name            String
   phone           String?
-  password        String
+  avatar          String?   // Uploadthing URL
   role            UserRole  @default(PATIENT)
   emailVerified   Boolean   @default(false)
   phoneVerified   Boolean   @default(false)
-  avatar          String?
   dateOfBirth     DateTime?
   address         String?
   emergencyContact String?
   medicalHistory  String?
+  allergies       String[]
+  bloodType       String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -48,11 +71,14 @@ model User {
   appointmentsAsDoctor  Appointment[] @relation("DoctorAppointments")
   notifications        Notification[]
   notificationPreferences NotificationPreference?
+  medicalRecords      MedicalRecord[]
+  prescriptions       Prescription[]
 }
 
 model Doctor {
   id          String   @id @default(cuid())
   userId      String   @unique
+  clerkId     String?  @unique  // Clerk user ID for doctor login
   specialty   String
   qualifications String[]
   experience  Int      // years
@@ -60,6 +86,8 @@ model Doctor {
   consultationFee Decimal
   bio         String?
   available   Boolean  @default(true)
+  avatar      String?  // Uploadthing URL
+  gallery     String[] // Uploadthing URLs for doctor gallery
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -68,6 +96,7 @@ model Doctor {
   appointments Appointment[]
   availability DoctorAvailability[]
   workingHours WorkingHours[]
+  reviews      Review[]
 }
 
 model DoctorAvailability {
@@ -97,6 +126,7 @@ model WorkingHours {
   doctor    Doctor   @relation(fields: [doctorId], references: [id])
 }
 
+
 model Appointment {
   id          String           @id @default(cuid())
   patientId   String
@@ -112,12 +142,16 @@ model Appointment {
   cancelledAt DateTime?
   cancelledBy String?          // User ID who cancelled
   cancellationReason String?
+  attended    Boolean          @default(false)
+  followUpNeeded Boolean       @default(false)
 
   // Relations
   patient     User             @relation("PatientAppointments", fields: [patientId], references: [id])
   doctor      User             @relation("DoctorAppointments", fields: [doctorId], references: [id])
   doctorInfo  Doctor           @relation(fields: [doctorId], references: [userId])
   notifications Notification[]
+  prescription Prescription?
+  attachments  AppointmentAttachment[]
 }
 
 model Notification {
@@ -189,4 +223,284 @@ model ChatSession {
   // Relations
   user      User?    @relation(fields: [userId], references: [id])
   messages  ChatHistory[]
+}
+
+model AppointmentAttachment {
+  id            String   @id @default(cuid())
+  appointmentId String
+  fileName      String
+  fileUrl       String   // Uploadthing URL
+  fileType      String
+  uploadedBy    String   // User ID
+  createdAt     DateTime @default(now())
+
+  // Relations
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+}
+
+model MedicalRecord {
+  id          String   @id @default(cuid())
+  patientId   String
+  title       String
+  description String?
+  fileUrl     String   // Uploadthing URL
+  fileType    String
+  uploadedBy  String   // Doctor ID
+  date        DateTime
+  createdAt   DateTime @default(now())
+
+  // Relations
+  patient     User     @relation(fields: [patientId], references: [id])
+}
+
+model Prescription {
+  id            String   @id @default(cuid())
+  patientId     String
+  doctorId      String
+  appointmentId String?
+  medication    String
+  dosage        String
+  frequency     String
+  duration      String
+  instructions  String?
+  prescribedAt  DateTime @default(now())
+  expiresAt     DateTime
+  refills       Int      @default(0)
+  filled        Boolean  @default(false)
+
+  // Relations
+  patient       User     @relation(fields: [patientId], references: [id])
+  doctor        User     @relation(fields: [doctorId], references: [id])
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  patientId   String
+  doctorId    String
+  appointmentId String?
+  rating      Int      // 1-5
+  comment     String?
+  approved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  patient     User     @relation(fields: [patientId], references: [id])
+  doctor      Doctor   @relation(fields: [doctorId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+}
+
+// Blog Models
+model BlogCategory {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  color       String?   @default("#00BFFF")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  posts       BlogPost[]
+}
+
+model BlogPost {
+  id             String        @id @default(cuid())
+  title          String
+  slug           String        @unique
+  excerpt        String
+  content        String
+  featuredImage  String?
+  authorId       String?
+  categoryId     String
+  readTime       Int           @default(5)
+  views          Int           @default(0)
+  published      Boolean       @default(false)
+  featured       Boolean       @default(false)
+  metaTitle      String?
+  metaDescription String?
+  publishedAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  author         Doctor?       @relation(fields: [authorId], references: [id])
+  category       BlogCategory  @relation(fields: [categoryId], references: [id])
+  tags           BlogTag[]
+  comments       BlogComment[]
+
+  @@index([published, publishedAt])
+  @@index([categoryId])
+}
+
+model BlogTag {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+
+  posts     BlogPost[]
+}
+
+model BlogComment {
+  id        String    @id @default(cuid())
+  postId    String
+  authorId  String?
+  parentId  String?
+  content   String
+  approved  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  post      BlogPost  @relation(fields: [postId], references: [id])
+  author    User?     @relation(fields: [authorId], references: [id])
+  parent    BlogComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   BlogComment[] @relation("CommentReplies")
+}
+
+// Media Gallery Models
+model MediaGallery {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String    // Uploadthing URL
+  category    String?   // "facility", "team", "events", etc.
+  order       Int       @default(0)
+  published   Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model FacilityImage {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  imageUrl    String    // Uploadthing URL
+  features    String[]  // Array of features
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String
+  icon        String?
+  color       String?
+  features    String[]
+  process     String[]
+  specialists String[]
+  imageUrl    String?
+  order       Int      @default(0)
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+model TelehealthConsultation {
+  id                String             @id @default(cuid())
+  appointmentId     String?            @unique
+  patientId         String
+  doctorId          String
+  type              ConsultationType   @default(VIDEO)
+  status            ConsultationStatus @default(SCHEDULED)
+  
+  // Scheduling
+  scheduledAt       DateTime
+  duration          Int                @default(30) // minutes
+  actualStartTime   DateTime?
+  actualEndTime     DateTime?
+  
+  // Meeting Details
+  meetingId         String             @unique
+  meetingUrl        String?
+  meetingPassword   String?
+  waitingRoomUrl    String?
+  
+  // Technical Details
+  platform          String             @default("daily-co") // daily.co, zoom, etc.
+  recordingUrl      String?
+  transcriptionUrl  String?
+  
+  // Payment
+  consultationFee   Decimal
+  paymentStatus     PaymentStatus      @default(PENDING)
+  paymentId         String?
+  receiptUrl        String?
+  
+  // Notes
+  symptoms          String?
+  medicalHistory    String?
+  notes             String?
+  prescriptionId    String?
+  followUpDate      DateTime?
+  
+  // Analytics
+  patientJoinedAt   DateTime?
+  doctorJoinedAt    DateTime?
+  connectionQuality String?            // good, average, poor
+  devices           Json?              // { patient: { browser, os }, doctor: { browser, os } }
+  
+  // Relations
+  patient           User               @relation("TelehealthPatient", fields: [patientId], references: [id])
+  doctor            User               @relation("TelehealthDoctor", fields: [doctorId], references: [id])
+  appointment       Appointment?       @relation(fields: [appointmentId], references: [id])
+  prescription      Prescription?      @relation(fields: [prescriptionId], references: [id])
+  messages          TelehealthMessage[]
+  
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model TelehealthMessage {
+  id                String               @id @default(cuid())
+  consultationId    String
+  senderId          String
+  content           String
+  type              String               @default("text") // text, image, file, prescription
+  fileUrl           String?
+  metadata          Json?
+  read              Boolean              @default(false)
+  readAt            DateTime?
+  
+  // Relations
+  consultation      TelehealthConsultation @relation(fields: [consultationId], references: [id])
+  sender            User                 @relation(fields: [senderId], references: [id])
+  
+  createdAt         DateTime             @default(now())
+}
+
+model TelehealthAvailability {
+  id                String   @id @default(cuid())
+  doctorId          String
+  dayOfWeek         Int      // 0-6 (Sunday-Saturday)
+  startTime         String
+  endTime           String
+  type              ConsultationType @default(VIDEO)
+  maxPatients       Int      @default(4)
+  slotDuration      Int      @default(30) // minutes
+  
+  // Relations
+  doctor            Doctor   @relation(fields: [doctorId], references: [id])
+  
+  @@unique([doctorId, dayOfWeek, type])
+}
+
+model TelehealthDevice {
+  id                String   @id @default(cuid())
+  userId            String
+  deviceToken       String   // For push notifications
+  deviceType        String   // web, ios, android
+  browser           String?
+  os                String?
+  lastActive        DateTime @default(now())
+  
+  // Relations
+  user              User     @relation(fields: [userId], references: [id])
+  
+  @@unique([userId, deviceToken])
 }
