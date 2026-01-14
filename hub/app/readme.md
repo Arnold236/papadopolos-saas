@@ -129,4 +129,28 @@ OPENAI_API_KEY=sk-xxxxxxxxxx
 ## Chatbot and more Dependencies. 
 npm install openai @anthropic-ai/sdk cohere-ai @huggingface/inference
 npm install @clerk/nextjs uploadthing @uploadthing/react @prisma/client date-fns react-hook-form zod @hookform/resolvers
+npm install slugify react-markdown remark-gfm
+
+
+## Telehealth update
+
+# Daily.co (Video Platform)
+DAILY_API_KEY=your_daily_api_key
+DAILY_API_URL=https://api.daily.co/v1
+NEXT_PUBLIC_DAILY_DOMAIN=your-domain.daily.co
+
+# Alternative: Zoom
+ZOOM_CLIENT_ID=your_zoom_client_id
+ZOOM_CLIENT_SECRET=your_zoom_client_secret
+ZOOM_ACCOUNT_ID=your_zoom_account_id
+
+# Stripe Payments
+STRIPE_SECRET_KEY=sk_live_xxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxx
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_xxxx
+
+# Installations Dependencies
+npm install @daily-co/daily-js webrtc-adapter react-dropzone socket.io-client
+npm install stripe @stripe/stripe-js
+npm install googleapis
 
