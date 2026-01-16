@@ -154,3 +154,23 @@ npm install @daily-co/daily-js webrtc-adapter react-dropzone socket.io-client
 npm install stripe @stripe/stripe-js
 npm install googleapis
 
+## More Configurations
+# SMS Configuration
+SMS_PROVIDER=twilio  # twilio, africas-talking, vonage
+
+# Twilio Configuration
+TWILIO_ACCOUNT_SID=your_account_sid
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_PHONE_NUMBER=+1234567890
+
+# Africa's Talking Configuration
+AFRICAS_TALKING_API_KEY=your_api_key
+AFRICAS_TALKING_USERNAME=your_username
+
+# Vonage Configuration
+VONAGE_API_KEY=your_api_key
+VONAGE_API_SECRET=your_api_secret
+
+# General
+SMS_FROM_NUMBER=HealthcareHub
+SMS_TEST_NUMBER=+27123456789

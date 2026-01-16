@@ -504,3 +504,30 @@ model TelehealthDevice {
   
   @@unique([userId, deviceToken])
 }
+
+model SMSLog {
+  id            String   @id @default(cuid())
+  messageId     String   @unique
+  recipient     String
+  body          String
+  provider      String
+  status        String   // queued, sent, delivered, failed
+  errorCode     String?
+  errorMessage  String?
+  metadata      Json?
+  sentAt        DateTime @default(now())
+  deliveredAt   DateTime?
+  
+  // Relations
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([recipient])
+  @@index([status])
+  @@index([sentAt])
+}
