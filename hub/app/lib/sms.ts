@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import smsService from "@/lib/sms";
+import smsService from "./smsService";
 import { PrismaClient } from "@prisma/client";
 import { rateLimit } from "@/lib/rate-limit";
 
